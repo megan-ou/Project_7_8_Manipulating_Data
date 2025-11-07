@@ -33,6 +33,12 @@ def bbanalyze(filename = "baseball.csv"):
     for i in bbstats["records"].keys:
         bbstats["records"][i] = dict.fromkeys(["id", "value"])
 
+    #TODO: record.count -> league.count calculations here
+
+    #TODO: bb calculated here
+
+    #TODO: nl calculated here; can use get_dat_subset
+
     bbstats["al"]["dat"] = get_dat_subset(bbdat,"lg", "AL")
 
 def get_dat_subset(df, col, value):
