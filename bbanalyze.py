@@ -30,30 +30,53 @@ def bbanalyze(filename = "baseball.csv"):
                                         "sop", "sopa", "bb", "bbp", "g"])
     #I didn't want to use a for loop and instead use a list comprehension, but I was not sure
     # how to structure it as bbstats["records"][key] = [list comprehension]
-    for i in bbstats["records"].keys:
-        bbstats["records"][i] = dict.fromkeys(["id", "value"])
+    for key in bbstats["records"].keys():
+        bbstats["records"][key] = dict.fromkeys(["id", "value"])
 
     #TODO: record.count -> league.count calculations here
 
     #TODO: bb calculated here
 
-    #TODO: nl calculated here; can use get_dat_subset
+    #TODO: nl calculated here; can use get_dat_subset and get_count methods; can probably copy format
+    # from "al"
 
+    #Calculate al information
     bbstats["al"]["dat"] = get_dat_subset(bbdat,"lg", "AL")
+    bbstats["al"]["players"] = get_count(bbstats["al"]["dat"],"id")
+    bbstats["al"]["teams"] = get_count(bbstats["al"]["dat"],"team")
 
-def get_dat_subset(df, col, value):
+
+def get_dat_subset(df, col, val):
     """
-    Helper method that takes a subset of data based on a specific ID value (ex: taking a
+    Helper method that takes a subset of data based on a specific value (ex: taking a
     subset of all National League Baseball players)
     Args:
         df (Pandas DataFrame): DataFrame that we are taking the subset out of
         col (string): column name of the data subset we are extracting
-        value (string): what specific value from the subset that we are looking for
+        val (string): what specific value from the subset that we are looking for
 
     Returns: subset of database based on the id and value
     """
-    if not isinstance(id, str) or not isinstance(value, str) or not isinstance(df, pd.DataFrame):
+    if not isinstance(col, str) or not isinstance(val, str) or not isinstance(df, pd.DataFrame):
         return math.nan
 
-    return df.query(f'{col} == "{value}"')
+    return df.query(f'{col} == "{val}"')
+
+def get_count(df, col):
+    """
+    Helper method that counts the number of unique rows in a DataFrame; can be used for player count
+    and team count.
+
+    Args:
+        df (Pandas DataFrame): DataFrame that you want to take count of contents
+        col (string): column name of the data we want a count of
+
+    Returns: count of rows
+    """
+    if not isinstance(df, pd.DataFrame) or not isinstance(col,str):
+        return math.nan
+
+    #Originally used .shape(), but realized that shape will count all rows, even the duplicates of same player
+    # playing multiple years.
+    return df[col].nunique()
 
