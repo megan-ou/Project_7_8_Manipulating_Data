@@ -45,7 +45,7 @@ def bbanalyze(filename = "baseball.csv"):
 
     #TODO: record.count -> league.count calculations here
 
-    #TODO: bb calculated here, need this to test nl and al
+    #TODO: bb calculated here, need this to test nl and al since nl and al are bb subsets
 
     #TODO: nl calculated here; can use get_dat_subset and get_count methods; can probably copy format
     # from "al"
@@ -58,7 +58,6 @@ def bbanalyze(filename = "baseball.csv"):
     #Calculate records
 
     return bbstats
-
 
 def get_dat_subset(df, col, val):
     """
