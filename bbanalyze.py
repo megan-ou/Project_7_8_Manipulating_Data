@@ -21,8 +21,9 @@ def bbanalyze(filename = "baseball.csv"):
     if not isinstance(filename, str):
         return math.nan
     #Make sure that the given filename is a .csv file with a name using regular expressions. Not sure if this was
-    # required, but this was honestly for fun to see if I can do it.
-    match = re.search('.+\.csv$', filename)
+    # required, but this was honestly for fun to see if I can do it. Also makes sure that the .csv file has a name.
+    # In other words, the file cannot just be .csv because files should have names?
+    match = re.search(r".+\.csv$", filename)
     if not match:
         return math.nan
 
@@ -44,17 +45,19 @@ def bbanalyze(filename = "baseball.csv"):
 
     #TODO: record.count -> league.count calculations here
 
-    #TODO: bb calculated here
+    #TODO: bb calculated here, need this to test nl and al
 
     #TODO: nl calculated here; can use get_dat_subset and get_count methods; can probably copy format
     # from "al"
 
     #Calculate al information
-    bbstats["al"]["dat"] = get_dat_subset(bbdat,"lg", "AL")
+    bbstats["al"]["dat"] = get_dat_subset(bbstats["bb"],"lg", "AL")
     bbstats["al"]["players"] = get_count(bbstats["al"]["dat"],"id")
     bbstats["al"]["teams"] = get_count(bbstats["al"]["dat"],"team")
 
     #Calculate records
+
+    return bbstats
 
 
 def get_dat_subset(df, col, val):
