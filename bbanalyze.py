@@ -1,5 +1,6 @@
 import math
 import pandas as pd
+import re
 
 def bbanalyze(filename = "baseball.csv"):
     """
@@ -17,6 +18,14 @@ def bbanalyze(filename = "baseball.csv"):
         al
         records
     """
+    if not isinstance(filename, str):
+        return math.nan
+    #Make sure that the given filename is a .csv file with a name using regular expressions. Not sure if this was
+    # required, but this was honestly for fun to see if I can do it.
+    match = re.search('.+\.csv$', filename)
+    if not match:
+        return math.nan
+
     bbdat = pd.read_csv(filename)
 
     #Construct empty dictionaries with null values to be populated later; basically initializing
@@ -44,6 +53,8 @@ def bbanalyze(filename = "baseball.csv"):
     bbstats["al"]["dat"] = get_dat_subset(bbdat,"lg", "AL")
     bbstats["al"]["players"] = get_count(bbstats["al"]["dat"],"id")
     bbstats["al"]["teams"] = get_count(bbstats["al"]["dat"],"team")
+
+    #Calculate records
 
 
 def get_dat_subset(df, col, val):
@@ -79,4 +90,6 @@ def get_count(df, col):
     #Originally used .shape(), but realized that shape will count all rows, even the duplicates of same player
     # playing multiple years.
     return df[col].nunique()
+
+bbanalyze()
 
