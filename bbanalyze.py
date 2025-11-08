@@ -44,7 +44,8 @@ def bbanalyze(filename = "baseball.csv"):
         bbstats["records"][key] = dict.fromkeys(["id", "value"])
 
     #TODO: record.count -> league.count calculations here
-
+    bbstats["record.count"] = len(bbdat)
+    bbstats["complete.cases"] = len(bbdat.dropnda())
     #TODO: bb calculated here, need this to test nl and al since nl and al are bb subsets
 
     #TODO: nl calculated here; can use get_dat_subset and get_count methods; can probably copy format
