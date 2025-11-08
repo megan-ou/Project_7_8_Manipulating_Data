@@ -116,6 +116,9 @@ def get_highest_record(df, col):
 
     Returns: index of row containing max value
     """
+    if not isinstance(df, pd.DataFrame) or not isinstance(col,str):
+        return math.nan
+
     #Call idxmax on only one column, so that only 1 index value is returned
     #Use axis=0 because we want the row index for max value within a column
     return df[col].idxmax(axis=0)
