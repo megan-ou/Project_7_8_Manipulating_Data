@@ -43,13 +43,42 @@ def bbanalyze(filename = "baseball.csv"):
     for key in bbstats["records"].keys():
         bbstats["records"][key] = dict.fromkeys(["id", "value"])
 
-    #TODO: record.count -> league.count calculations here
+    # count number of records
     bbstats["record.count"] = len(bbdat)
-    bbstats["complete.cases"] = len(bbdat.dropnda())
-    #TODO: bb calculated here, need this to test nl and al since nl and al are bb subsets
 
-    #TODO: nl calculated here; can use get_dat_subset and get_count methods; can probably copy format
-    # from "al"
+    # count number of complete cases
+    bb = bbdat.dropna()
+    bbstats["complete.cases"] = len(bb)
+
+    #tuple form of min year, max year
+    bbstats["years"] = (int(bb["year"].min()), int(bb["year"].max()))
+
+    #unique player count - no double-count
+    bbstats["player.count"] = bb["id"].nunique()
+
+    #unique team count - no double-count
+    bbstats["team.count"] = bb.["id"].nunique()
+
+    #unique league count - no double-count
+    bbstats["league.count"] = bb.["lg"].nunique()
+
+    #calculate obp
+    obp_num = bb["h"] + bb["bb"] + bb["hbp"]
+    obp_den = bb["ab"] + bb["bb"] + bb["hbp"]
+    bb["obp"] = obp_num / obp_den
+
+    #calculate pab
+    pab_num = obp_num + bb["sf"] + bb["sh"]
+    pab_den = obp_num + bb["sf"] + bb["sh"]
+    bb["pab"] = pab_num / pab_den
+
+    #replace inf, -inf, NaN with NaN
+    bb[["obp", "pab"]] = bb[["obp", "pab"]].replace([np.inf, -np.inf], np.nan)
+
+    # Calculate nl information
+    bbstats["nl"]["dat"] = get_dat_subset(bbstats["bb"], "lg", '"NL"')
+    bbstats["nl"]["players"] = get_count(bbstats["nl"]["dat"], "id")
+    bbstats["nl"]["teams"] = get_count(bbstats["nl"]["dat"], "team")
 
     #Calculate al information
     bbstats["al"]["dat"] = get_dat_subset(bbstats["bb"],"lg", '"AL"')
