@@ -57,10 +57,10 @@ def bbanalyze(filename = "baseball.csv"):
     bbstats["player.count"] = bb["id"].nunique()
 
     #unique team count - no double-count
-    bbstats["team.count"] = bb.["id"].nunique()
+    bbstats["team.count"] = bb["id"].nunique()
 
     #unique league count - no double-count
-    bbstats["league.count"] = bb.["lg"].nunique()
+    bbstats["league.count"] = bb["lg"].nunique()
 
     #calculate obp
     obp_num = bb["h"] + bb["bb"] + bb["hbp"]
@@ -73,7 +73,7 @@ def bbanalyze(filename = "baseball.csv"):
     bb["pab"] = pab_num / pab_den
 
     #replace inf, -inf, NaN with NaN
-    bb[["obp", "pab"]] = bb[["obp", "pab"]].replace([np.inf, -np.inf], np.nan)
+    bb[["obp", "pab"]] = bb[["obp", "pab"]].replace([math.inf, -math.inf], math.nan)
 
     # Calculate nl information
     bbstats["nl"]["dat"] = get_dat_subset(bbstats["bb"], "lg", '"NL"')
