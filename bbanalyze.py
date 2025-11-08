@@ -51,15 +51,24 @@ def bbanalyze(filename = "baseball.csv"):
     # from "al"
 
     #Calculate al information
-    bbstats["al"]["dat"] = get_dat_subset(bbstats["bb"],"lg", "AL")
+    bbstats["al"]["dat"] = get_dat_subset(bbstats["bb"],"lg", '"AL"')
     bbstats["al"]["players"] = get_count(bbstats["al"]["dat"],"id")
     bbstats["al"]["teams"] = get_count(bbstats["al"]["dat"],"team")
 
     #Calculate records
+    #Isolate players with at least 50 career at bats. This ensures that when scanning the dataset for records,
+    # program searches through fewer players. (Or you don't have to search for >= 50 career at bats each time)
+    bbrecords = get_dat_subset(bbstats["bb"], "ab", "50", ">=")
+    for key in bbstats["records"].keys():
+        #Iterate through all records and call helper method to find index with the largest value
+        #Using that index, locate player ID and record value and populate the dictionary with them.
+        index = get_highest_record(bbrecords, key)
+        bbstats["records"][key]["id"] = bbrecords["id"][index]
+        bbstats["records"][key]["value"] = bbrecords[key][index]
 
     return bbstats
 
-def get_dat_subset(df, col, val):
+def get_dat_subset(df, col, val, com = "=="):
     """
     Helper method that takes a subset of data based on a specific value (ex: taking a
     subset of all National League Baseball players)
@@ -67,13 +76,18 @@ def get_dat_subset(df, col, val):
         df (Pandas DataFrame): DataFrame that we are taking the subset out of
         col (string): column name of the data subset we are extracting
         val (string): what specific value from the subset that we are looking for
+        com (string): what comparison are we dealing with (==, >=, <=, etc.) Default is ==
 
     Returns: subset of database based on the id and value
     """
-    if not isinstance(col, str) or not isinstance(val, str) or not isinstance(df, pd.DataFrame):
+    if (not isinstance(col, str) or not isinstance(val, str) or not isinstance(com,str)
+            or not isinstance(df, pd.DataFrame)):
         return math.nan
 
-    return df.query(f'{col} == "{val}"')
+    #was originally df.query(f'{col} == "{val}"), but I wanted to be able to include value > int and
+    # in the class example, there is no "" around the number, so I got rid of the "" in the statement
+    # and instead included it in the val string argument (ex: '"AL"').
+    return df.query(f'{col} {com} {val}')
 
 def get_count(df, col):
     """
@@ -92,6 +106,19 @@ def get_count(df, col):
     #Originally used .shape(), but realized that shape will count all rows, even the duplicates of same player
     # playing multiple years.
     return df[col].nunique()
+
+def get_highest_record(df, col):
+    """
+    Finds the index of the highest value in a specified column of a DataFrame.
+    Args:
+        df (Pandas DataFrame): DataFrame that contains the records
+        col (str): column in which you find the max value in
+
+    Returns: index of row containing max value
+    """
+    #Call idxmax on only one column, so that only 1 index value is returned
+    #Use axis=0 because we want the row index for max value within a column
+    return df[col].idxmax(axis=0)
 
 bbanalyze()
 
