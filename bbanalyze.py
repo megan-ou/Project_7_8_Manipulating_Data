@@ -31,7 +31,9 @@ def bbanalyze(filename = "baseball.csv"):
 
     #Execution test data does not have a rowid column, dropping that column so they are equal. (This helped us
     # pass more tests?)
-    bbdat.drop('rowid', axis=1, inplace=True)
+    keys = bbdat.keys()
+    if [key == "rowid" for key in keys]:
+        bbdat.drop('rowid', axis=1, inplace=True)
 
     #Construct empty dictionaries with null values to be populated later; basically initializing
     # all values to keep track of the dictionaries within dictionaries. This is for my own sanity;
@@ -91,13 +93,33 @@ def bbanalyze(filename = "baseball.csv"):
     #Isolate players with at least 50 career at bats. This ensures that when scanning the dataset for records,
     # program searches through fewer players. (Or you don't have to search for >= 50 career at bats each time)
     bbrecords = get_dat_subset(bbstats["bb"], "ab", "50", ">=")
-    #TODO: fix this
-    #for key in bbstats["records"].keys():
+
+    #separate the keys in bbrecords into keys for metrics already existing in the dataset and keys that
+    # need further calculations. Calculated keys is a tuple containing the metric that is given as a percentage
+    # and the metric name.
+    existing_keys = ["obp","pab","hr","h","sb","so","bb","g"]
+    calculated_keys = [("hr","hrp"), ("h","hp"), ("sb","sbp"), ("so","sop"), ("so","sopa"), ("bb","bbp")]
+
+    for key in existing_keys:
         #Iterate through all records and call helper method to find index with the largest value
         #Using that index, locate player ID and record value and populate the dictionary with them.
-        #index = get_highest_record(bbrecords, key)
-        #bbstats["records"][key]["id"] = bbrecords["id"][index]
-        #bbstats["records"][key]["value"] = bbrecords[key][index]
+        index = get_highest_record(bbrecords, key)
+        bbstats["records"][key]["id"] = bbrecords["id"][index]
+        bbstats["records"][key]["value"] = bbrecords[key][index]
+
+    for key in calculated_keys:
+        #TODO: The problem is here where the program is not locating the correct max value. I think I'm going to try
+        #   a new approach where instead of finding the index, i'm going to find the actual max value and then find
+        #   player ID based on that max value? Idk if idxmax() is the easiest way to find values. The code runs just
+        #   fine and populates the dictionary with actual values. It is the values themselves that are not the maximum.
+        #   I know that I am calculating the statistics correctly because they calculations pass the execution test. The
+        #   problem is purely locating that maximum value.
+        calc_series = calc_percentage_ab_stats(bbrecords, key)
+        bbrecords = pd.concat([bbrecords, calc_series], axis=1)
+        index = get_highest_record(bbrecords, key[1])
+        bbstats["records"][key[1]]["id"] = bbrecords["id"][index]
+        bbstats["records"][key[1]]["value"] = bbrecords[key[1]][index]
+
 
     return bbstats
 
@@ -140,19 +162,46 @@ def get_count(df, col):
     # playing multiple years.
     return df[col].nunique()
 
-def get_highest_record(df, col):
+def get_highest_record(df, col=""):
     """
-    Finds the index of the highest value in a specified column of a DataFrame.
+    Finds the index of the highest value in a specified column of a DataFrame. D
     Args:
-        df (Pandas DataFrame): DataFrame that contains the records
+        df (Pandas DataFrame or Pandas Series): DataFrame that contains the records
         col (str): column in which you find the max value in
 
     Returns: index of row containing max value
     """
-    if not isinstance(df, pd.DataFrame) or not isinstance(col,str):
+    if not isinstance(col, str) or not isinstance(df, pd.DataFrame):
         return math.nan
 
-    #Call idxmax on only one column, so that only 1 index value is returned
-    #Use axis=0 because we want the row index for max value within a column
-    return df[col].idxmax(axis=0)
+    # Call idxmax on only one column, so that only 1 index value is returned
+    # Use axis=0 because we want the row index for max value within a column
+    return df[col].idxmax()
+
+def calc_percentage_ab_stats(df, metric):
+    """
+    Method that calculates a metric as a percentage at bat and returns a series containing
+    the new calculations. Special calculations for sopa
+    Args:
+        df (Pandas DataFrame): DataFrame that contains the records
+        metric (tuple of str): tuple containing the metric that is given as a percentage and the metric name
+            tuple SHOULD be in the format of (column name of given metric, name of new metric)
+
+    Returns: Series containing the new metric calculates
+    """
+    #if not isinstance(df, pd.DataFrame):
+        #return math.nan
+   # elif not any([isinstance(val, str) for val in metric]):
+        #return math.nan
+
+    #Split the tuple into a key and column
+    col = metric[0]
+    key = metric[1]
+
+    if key == "sopa":
+        return pd.Series(df[col] / (df["ab"] + df["bb"] + df["hbp"] + df["sh"] + df["sf"]), name=key)
+    else:
+        return pd.Series(df[col] / df["ab"], name=key)
+
+
 
