@@ -7,16 +7,19 @@ def bbanalyze(filename = "baseball.csv"):
     Function that analyzes, calculates, and reports the relative statistics for a given baseball
     dataset, national league, and American League baseball.
 
+    Args:
+        filename (str): name of the .csv file containing the data
+
     Returns: dictionary with records for the following
-        record.count
-        complete.cases
-        player.count
-        team.count
-        league.count
-        bb
-        nl
-        al
-        records
+        record.count (int)
+        complete.cases (int)
+        player.count (int)
+        team.count (int)
+        league.count (int)
+        bb (DataFrame)
+        nl (dict)
+        al (dict)
+        records (dict)
     """
     if not isinstance(filename, str):
         return math.nan
@@ -69,7 +72,6 @@ def bbanalyze(filename = "baseball.csv"):
 
     # count number of complete cases
     bbstats["bb"] = bbdat.dropna()
-    #Could also use .shape[0] here
     bbstats["complete.cases"] = len(bbstats["bb"])
 
     # Adding columns to bb DataFrame for obp and pab by creating new Series to concatenate to the bb DataFrame.
@@ -164,7 +166,7 @@ def get_count(df, col):
 
 def get_highest_record(df, col):
     """
-    Finds the index of the highest value in a specified column of a DataFrame. D
+    Finds the index of the highest value in a specified column of a DataFrame.
     Args:
         df (Pandas DataFrame or Pandas Series): DataFrame that contains the records
         col (str): column in which you find the max value in
@@ -190,10 +192,8 @@ def calc_percentage_ab_stats(df, metric):
 
     Returns: Series containing the new metric calculates
     """
-    #if not isinstance(df, pd.DataFrame):
-        #return math.nan
-   # elif not any([isinstance(val, str) for val in metric]):
-        #return math.nan
+    if not isinstance(df, pd.DataFrame) or not any([isinstance(val, str) for val in metric]):
+        return math.nan
 
     #Split the tuple into a key and column
     col = metric[0]
@@ -216,8 +216,7 @@ def calc_obp(df):
     if not isinstance(df, pd.DataFrame):
         return math.nan
 
-    obp = pd.Series((df["h"] + df["bb"] + df["hbp"]) / (df["ab"] + df["bb"] + df["hbp"]), name='obp')
-    return obp
+    return pd.Series((df["h"] + df["bb"] + df["hbp"]) / (df["ab"] + df["bb"] + df["hbp"]), name='obp')
 
 def calc_pab(df):
     """
@@ -231,7 +230,6 @@ def calc_pab(df):
     if not isinstance(df, pd.DataFrame):
         return math.nan
 
-    pab = pd.Series((df["h"] + df["bb"] + df["hbp"] + df["sf"] + df["sh"]) /
+    return pd.Series((df["h"] + df["bb"] + df["hbp"] + df["sf"] + df["sh"]) /
               (df["ab"] + df["bb"] + df["hbp"] + df["sf"] + df["sh"]), name='pab')
 
-    return pab
