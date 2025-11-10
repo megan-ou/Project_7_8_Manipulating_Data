@@ -64,17 +64,16 @@ class Test_bbanalyze(TestCase):
         self.assertEqual(self.result["league.count"], 2)
 
     #test obp and pab
+    #hardcoded obp and pad for data containing all relevant variables
     def test_obp_pab_calc(self):
         df = self.result["bb"]
 
-        #TODO: In excel, calculate the obp and pab manually for the first ~3-5 players in self.result["bb"]
-        # You might have to print out the DataFrame into the console in order to find them, but I think in the
-        # Excel sheet it should just be the first 3-5 entries with no missing values.
-        # Take the df.head(n) of the bb subset (depending on how many you calculate) and store it in a separate DataFrame
-        # Compare the values of obp and pab! That should work, lmk if you need further clarifications
+        #test for loftoke01 (CLE)
+        self.assertAlmostEqual(df.loc[df["id"] == "loftoke01"].iloc[0]["obp"], 66/190)
+        self.assertAlmostEqual(df.loc[df["id"] == "loftoke01"].iloc[0]["pab"], 72/196)
 
-        expected_obp = 7006 / 18301
-        expected_pab = 6144 / 18438
+        #test for loftoke01 (TEX)
+        self.assertAlmostEqual(df.loc[df["id"] == "loftoke01"].iloc[1]["obp"], 137/358)
+        self.assertAlmostEqual(df.loc[df["id"] == "loftoke01"].iloc[1]["pab"], 142/363)
 
-        self.assertAlmostEqual(df["obp"].mean(), expected_obp, places=4)
-        self.assertAlmostEqual(df["pab"].mean(), expected_pab, places=4)
+
