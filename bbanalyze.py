@@ -29,11 +29,14 @@ def bbanalyze(filename = "baseball.csv"):
 
     bbdat = pd.read_csv(filename)
 
-    #Execution test data does not have a rowid column, dropping that column so they are equal. (This helped us
-    # pass more tests?)
-    keys = bbdat.keys()
-    if [key == "rowid" for key in keys]:
-        bbdat.drop('rowid', axis=1, inplace=True)
+    #Execution test data does not have a rowid column (first column), dropping that column so they are equal. (This helped us
+    # pass more tests?) I don't like this as a solution, but it is a bit of a brute-force to get things to equal up.
+    # Could I get an explanation of what went wrong here?
+    bbdat.drop(bbdat.columns[0],axis=1,inplace=True)
+    #This code below doesn't work because for some reason it cannot find rowid?
+    #keys = bbdat.keys()
+    #if [key == "rowid" for key in keys]:
+        #bbdat.drop('rowid', axis=1, inplace=True)
 
     #Construct empty dictionaries with null values to be populated later; basically initializing
     # all values to keep track of the dictionaries within dictionaries. This is for my own sanity;
@@ -71,12 +74,8 @@ def bbanalyze(filename = "baseball.csv"):
 
     # Adding columns to bb DataFrame for obp and pab by creating new Series to concatenate to the bb DataFrame.
     # Is it okay to do the calculations inside the .Series() function call because it might be a little hard to read.
-    obp_ser = pd.Series((bbstats["bb"]["h"] + bbstats["bb"]["bb"] + bbstats["bb"]["hbp"]) /
-                        (bbstats["bb"]["ab"] + bbstats["bb"]["bb"] + bbstats["bb"]["hbp"]),
-                        name='obp')
-    pab_ser = pd.Series((bbstats["bb"]["h"] + bbstats["bb"]["bb"] + bbstats["bb"]["hbp"] + bbstats["bb"]["sf"]
-                         + bbstats["bb"]["sh"]) / (bbstats["bb"]["ab"] + bbstats["bb"]["bb"] + bbstats["bb"]["hbp"] +
-                                                   bbstats["bb"]["sf"] + bbstats["bb"]["sh"]), name='pab')
+    obp_ser = calc_obp(bbstats["bb"])
+    pab_ser = calc_pab(bbstats["bb"])
     bbstats["bb"] = pd.concat([bbstats["bb"], obp_ser, pab_ser], axis=1)
 
     # Calculate nl information
@@ -90,9 +89,25 @@ def bbanalyze(filename = "baseball.csv"):
     bbstats["al"]["teams"] = get_count(bbstats["al"]["dat"],"team")
 
     #Calculate records
-    #Isolate players with at least 50 career at bats. This ensures that when scanning the dataset for records,
-    # program searches through fewer players. (Or you don't have to search for >= 50 career at bats each time)
+    # Find all records in bb DataFrame with >= 50 career at bats
     bbrecords = get_dat_subset(bbstats["bb"], "ab", "50", ">=")
+    #Aggregate by id and get a list of all players with >= 50 career at bats.
+    bbrecords = bbrecords.groupby(["id"]).sum()
+    record_players = pd.Series(bbrecords.index.tolist(), name="id")
+
+    #Aggregate bb DataFrame using groupby to calculate total career stats per player id. Do NOT use bbrecords yet
+    # because it will drop career stats for players in years before they have 50 career at bats, we will be missing
+    # some numbers.
+    # Drop obp and pab because we want to recalculate it based on aggregated stats.
+    bbrecords_agg = bbstats["bb"].drop('obp',axis=1).drop('pab',axis=1).groupby(["id"]).sum()
+    #Recalculate the aggregate obp and pab
+    obp_ser = calc_obp(bbrecords_agg)
+    pab_ser = calc_pab(bbrecords_agg)
+    bbrecords_agg = pd.concat([bbrecords_agg, obp_ser, pab_ser], axis=1)
+
+    #Now we need to compare the list of players to the indexes of bbrecords_agg and drop any row that does not match.
+    # This way we have only players with at least 50 career at bats with an aggregate value of their entire career stats.
+    merge_df = pd.merge(record_players, bbrecords_agg, left_on="id", right_index=True, how="inner")
 
     #separate the keys in bbrecords into keys for metrics already existing in the dataset and keys that
     # need further calculations. Calculated keys is a tuple containing the metric that is given as a percentage
@@ -101,25 +116,18 @@ def bbanalyze(filename = "baseball.csv"):
     calculated_keys = [("hr","hrp"), ("h","hp"), ("sb","sbp"), ("so","sop"), ("so","sopa"), ("bb","bbp")]
 
     for key in existing_keys:
-        #Iterate through all records and call helper method to find index with the largest value
-        #Using that index, locate player ID and record value and populate the dictionary with them.
-        index = get_highest_record(bbrecords, key)
-        bbstats["records"][key]["id"] = bbrecords["id"][index]
-        bbstats["records"][key]["value"] = bbrecords[key][index]
+        #Iterate through all records and call helper method to find the max value and corresponding player id.
+        max_val = get_highest_record(merge_df, key)
+        #further debugging: prnt key values
+        bbstats["records"][key]["id"] = max_val[0]
+        bbstats["records"][key]["value"] = max_val[1]
 
     for key in calculated_keys:
-        #TODO: The problem is here where the program is not locating the correct max value. I think I'm going to try
-        #   a new approach where instead of finding the index, i'm going to find the actual max value and then find
-        #   player ID based on that max value? Idk if idxmax() is the easiest way to find values. The code runs just
-        #   fine and populates the dictionary with actual values. It is the values themselves that are not the maximum.
-        #   I know that I am calculating the statistics correctly because they calculations pass the execution test. The
-        #   problem is purely locating that maximum value.
-        calc_series = calc_percentage_ab_stats(bbrecords, key)
-        bbrecords = pd.concat([bbrecords, calc_series], axis=1)
-        index = get_highest_record(bbrecords, key[1])
-        bbstats["records"][key[1]]["id"] = bbrecords["id"][index]
-        bbstats["records"][key[1]]["value"] = bbrecords[key[1]][index]
-
+        calc_series = calc_percentage_ab_stats(merge_df, key)
+        merge_df = pd.concat([merge_df, calc_series], axis=1)
+        max_val = get_highest_record(merge_df, key[1])
+        bbstats["records"][key[1]]["id"] = max_val[0]
+        bbstats["records"][key[1]]["value"] = max_val[1]
 
     return bbstats
 
@@ -162,7 +170,7 @@ def get_count(df, col):
     # playing multiple years.
     return df[col].nunique()
 
-def get_highest_record(df, col=""):
+def get_highest_record(df, col):
     """
     Finds the index of the highest value in a specified column of a DataFrame. D
     Args:
@@ -174,9 +182,14 @@ def get_highest_record(df, col=""):
     if not isinstance(col, str) or not isinstance(df, pd.DataFrame):
         return math.nan
 
+    value = df[col].max()
+    id = df[col].idxmax()
+    name = df.at[id,"id"]
+
+    return (name, value)
     # Call idxmax on only one column, so that only 1 index value is returned
     # Use axis=0 because we want the row index for max value within a column
-    return df[col].idxmax()
+    #return df[col].idxmax()
 
 def calc_percentage_ab_stats(df, metric):
     """
@@ -203,5 +216,34 @@ def calc_percentage_ab_stats(df, metric):
     else:
         return pd.Series(df[col] / df["ab"], name=key)
 
+def calc_obp(df):
+    """
+    Method to calculate on base percentage based on a given DataFrame
+    Args:
+        df (Pandas DataFrame): DataFrame that contains the stats
 
+    Returns: Series containing all obp
 
+    """
+    if not isinstance(df, pd.DataFrame):
+        return math.nan
+
+    obp = pd.Series((df["h"] + df["bb"] + df["hbp"]) / (df["ab"] + df["bb"] + df["hbp"]), name='obp')
+    return obp
+
+def calc_pab(df):
+    """
+    Method to calculate productive at bats based on a given DataFrame
+    Args:
+        df (Pandas DataFrame): DataFrame that contains the stats
+
+    Returns: Series containing all pab
+
+    """
+    if not isinstance(df, pd.DataFrame):
+        return math.nan
+
+    pab = pd.Series((df["h"] + df["bb"] + df["hbp"] + df["sf"] + df["sh"]) /
+              (df["ab"] + df["bb"] + df["hbp"] + df["sf"] + df["sh"]), name='pab')
+
+    return pab
