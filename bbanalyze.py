@@ -30,7 +30,7 @@ def bbanalyze(filename = "baseball.csv"):
     bbdat = pd.read_csv(filename)
 
     #Execution test data does not have a rowid column (first column), dropping that column so they are equal. (This helped us
-    # pass more tests?) I don't like this as a solution, but it is a bit of a brute-force to get things to equal up.
+    # pass more tests?) I don't like this as a solution, but it is a bit of a brute-force solution to get things to equal up???
     # Could I get an explanation of what went wrong here?
     bbdat.drop(bbdat.columns[0],axis=1,inplace=True)
     #This code below doesn't work because for some reason it cannot find rowid?
