@@ -67,6 +67,12 @@ class Test_bbanalyze(TestCase):
     def test_obp_pab_calc(self):
         df = self.result["bb"]
 
+        #TODO: In excel, calculate the obp and pab manually for the first ~3-5 players in self.result["bb"]
+        # You might have to print out the DataFrame into the console in order to find them, but I think in the
+        # Excel sheet it should just be the first 3-5 entries with no missing values.
+        # Take the df.head(n) of the bb subset (depending on how many you calculate) and store it in a separate DataFrame
+        # Compare the values of obp and pab! That should work, lmk if you need further clarifications
+
         expected_obp = 7006 / 18301
         expected_pab = 6144 / 18438
 
