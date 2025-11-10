@@ -62,3 +62,13 @@ class Test_bbanalyze(TestCase):
     #league count test
     def test_league_count(self):
         self.assertEqual(self.result["league.count"], 2)
+
+    #test obp and pab
+    def test_obp_pab_calc(self):
+        df = self.result["bb"]
+
+        expected_obp = 7006 / 18301
+        expected_pab = 6144 / 18438
+
+        self.assertAlmostEqual(df["obp"].mean(), expected_obp, places=4)
+        self.assertAlmostEqual(df["pab"].mean(), expected_pab, places=4)
