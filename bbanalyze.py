@@ -89,27 +89,20 @@ def bbanalyze(filename = "baseball.csv"):
     bbstats["al"]["teams"] = get_count(bbstats["al"]["dat"],"team")
 
     #Calculate records
-    # Find all records in bb DataFrame with >= 50 career at bats
-    bbrecords = get_dat_subset(bbstats["bb"], "ab", "50", ">=")
-    #Aggregate by id and get a list of all players with >= 50 career at bats.
-    bbrecords = bbrecords.groupby(["id"]).sum()
-    record_players = pd.Series(bbrecords.index.tolist(), name="id")
-
-    #Aggregate bb DataFrame using groupby to calculate total career stats per player id. Do NOT use bbrecords yet
-    # because it will drop career stats for players in years before they have 50 career at bats, we will be missing
-    # some numbers.
+    #Aggregate bb DataFrame using groupby to calculate total career stats per player id, this way we can look at
+    # each stat for a player's entire career
     # Drop obp and pab because we want to recalculate it based on aggregated stats.
-    bbrecords_agg = bbstats["bb"].drop('obp',axis=1).drop('pab',axis=1).groupby(["id"]).sum()
+    bb_agg = bbstats["bb"].drop('obp', axis=1).drop('pab', axis=1).groupby(["id"]).sum()
     #Recalculate the aggregate obp and pab
-    obp_ser = calc_obp(bbrecords_agg)
-    pab_ser = calc_pab(bbrecords_agg)
-    bbrecords_agg = pd.concat([bbrecords_agg, obp_ser, pab_ser], axis=1)
+    obp_ser = calc_obp(bb_agg)
+    pab_ser = calc_pab(bb_agg)
+    bb_agg = pd.concat([bb_agg, obp_ser, pab_ser], axis=1)
 
-    #Now we need to compare the list of players to the indexes of bbrecords_agg and drop any row that does not match.
-    # This way we have only players with at least 50 career at bats with an aggregate value of their entire career stats.
-    merge_df = pd.merge(record_players, bbrecords_agg, left_on="id", right_index=True, how="inner")
+    #Get data subset of all players with at least 50 career at bats; then we can find the max value. We do not want
+    # max values for players without that minimum career at bats.
+    bb_career = get_dat_subset(bb_agg, "ab", "50", ">=")
 
-    #separate the keys in bbrecords into keys for metrics already existing in the dataset and keys that
+    #separate the keys in bb_career into keys for metrics already existing in the dataset and keys that
     # need further calculations. Calculated keys is a tuple containing the metric that is given as a percentage
     # and the metric name.
     existing_keys = ["obp","pab","hr","h","sb","so","bb","g"]
@@ -117,15 +110,14 @@ def bbanalyze(filename = "baseball.csv"):
 
     for key in existing_keys:
         #Iterate through all records and call helper method to find the max value and corresponding player id.
-        max_val = get_highest_record(merge_df, key)
-        #further debugging: prnt key values
+        max_val = get_highest_record(bb_career, key)
         bbstats["records"][key]["id"] = max_val[0]
         bbstats["records"][key]["value"] = max_val[1]
 
     for key in calculated_keys:
-        calc_series = calc_percentage_ab_stats(merge_df, key)
-        merge_df = pd.concat([merge_df, calc_series], axis=1)
-        max_val = get_highest_record(merge_df, key[1])
+        calc_series = calc_percentage_ab_stats(bb_career, key)
+        bb_career = pd.concat([bb_career, calc_series], axis=1)
+        max_val = get_highest_record(bb_career, key[1])
         bbstats["records"][key[1]]["id"] = max_val[0]
         bbstats["records"][key[1]]["value"] = max_val[1]
 
@@ -184,12 +176,8 @@ def get_highest_record(df, col):
 
     value = df[col].max()
     id = df[col].idxmax()
-    name = df.at[id,"id"]
 
-    return (name, value)
-    # Call idxmax on only one column, so that only 1 index value is returned
-    # Use axis=0 because we want the row index for max value within a column
-    #return df[col].idxmax()
+    return (id, value)
 
 def calc_percentage_ab_stats(df, metric):
     """
