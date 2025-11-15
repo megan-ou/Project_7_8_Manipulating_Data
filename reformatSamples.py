@@ -46,10 +46,23 @@ def reformatSamples(samples):
     sample_dat = pd.concat([sample_dat,obs_series],axis=1)
 
     #Create a multi-index DataFrame based on sample and observation number
-    reformat_dat = sample_dat.groupby(['sample', 'obs']).sum()
-    reformat_dat.unstack(inplace=True)
-    print(reformat_dat)
+    multi_ind_dat = sample_dat.groupby(['sample', 'obs']).sum()
 
+    #No need to specify which column to unstack bc default puts sample as first column
+    reformat_dat = multi_ind_dat.unstack()
+
+    reformat_dat.reset_index(level=0,inplace=True)
+    print(reformat_dat.columns.tolist())
+
+    #Rename columns
+    #First create a list of new names, we know that the first one will be samples and the rest will be obs.x
+    # use shape[1] + 1 because range starts at 1; shape is used to determine number of columns
+    names_new = ["obs." + str(x) for x in range(1,reformat_dat.shape[1] + 1)]
+    names_new = ["sample"] + names_new
+
+    reformat_dat.columns(names_new)
+
+    #print(reformat_dat)
     return None
 
 reformatSamples("pistonrings.csv")
