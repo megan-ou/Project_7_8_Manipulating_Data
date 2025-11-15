@@ -1,6 +1,7 @@
 import pandas as pd
 import math
 import re
+import numpy as np
 
 def reformatSamples(samples):
     """
@@ -21,24 +22,33 @@ def reformatSamples(samples):
     if not match:
         return math.nan
 
-    sampledat = pd.read_csv(samples)
+    #Read in, sort, drop NaN values + unnecessary columns to the reformatted structure in data set
+    # so that it is ready to be reformatted
+    sample_dat = pd.read_csv(samples)
+    sample_dat.dropna()
+    sample_dat.drop('trial', axis=1, inplace=True)
+    sample_dat.drop(sample_dat.columns[0],axis=1,inplace=True)
+    sample_dat.sort_values(by='sample')
 
-    #make sure there are no rows with NaN values
-    sampledat.dropna()
-
-    #Verify that all samples have the same number of observations. First use groupby to sort/aggregate the data frame
-    # Used pandas documentation to find .size() and it's functions. It returns a Series with the size of each category.
-    # Go through the Series to ensure that all values are the same
-    sample_sizes = sampledat.groupby(["sample"]).size()
-    #Use .diff() to compare each consecutive row in the Series. This way, if there are any differences between two rows,
-    # then the program knows that at least one sample has too many or too little observations and returns None.
-    #Originally didn't realize that another Series is returned, so I summed the differences in entries. If there are no
-    # differences, sum should be 0.
-    diff_rows = sample_sizes.diff().sum()
-    if diff_rows != 0:
+    #Verify that all samples have the same number of observations.
+    sample_sizes = sample_dat.groupby(["sample"]).size()
+    if not all(sample_sizes[1] == sample_sizes[1:]):
         return None
 
+    #Creating the column listing the observation number needed to create a mutli-index DataFrame
+    #Store these values in variables, so that the functions are easier to read.
+    num_samples = len(sample_sizes)
+    num_obs = sample_sizes[1]
+    # tile method in numpy to generate repeated sequences of numbers (from documentation)
+    seq = np.tile(range(1,num_obs+1), num_samples)
+    #convert the numpy array to a series so that it is easy to concatenate to the Pandas DF with a name
+    obs_series = pd.Series(seq, name='obs')
+    sample_dat = pd.concat([sample_dat,obs_series],axis=1)
 
+    #Create a multi-index DataFrame based on sample and observation number
+    reformat_dat = sample_dat.groupby(['sample', 'obs']).sum()
+    reformat_dat.unstack(inplace=True)
+    print(reformat_dat)
 
     return None
 
