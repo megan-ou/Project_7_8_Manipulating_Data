@@ -1,6 +1,5 @@
 import pandas as pd
 import math
-import re
 import numpy as np
 
 def reformatSamples(samples):
@@ -15,24 +14,22 @@ def reformatSamples(samples):
 
     """
     #Ensure that samples is in the correct format to be then read into a pd Data Frame
-    if not isinstance(samples, str):
+    if not isinstance(samples, pd.DataFrame):
         return math.nan
 
-    match = re.search(r".+\.csv$", samples)
-    if not match:
-        return math.nan
-
-    #Read in, sort, drop NaN values + unnecessary columns to the reformatted structure in data set
+    #Read in, and sort values in the dataset based on sample. Then, extract two columns for just sample and diameter
     # so that it is ready to be reformatted
-    sample_dat = pd.read_csv(samples)
-    sample_dat.dropna()
-    sample_dat.drop('trial', axis=1, inplace=True)
-    sample_dat.drop(sample_dat.columns[0],axis=1,inplace=True)
-    sample_dat.sort_values(by='sample')
+    samples.dropna()
+    samples.sort_values(by='sample')
+    sample_dat = samples[['sample','diameter']]
 
     #Verify that all samples have the same number of observations.
     sample_sizes = sample_dat.groupby(["sample"]).size()
-    if not all(sample_sizes[1] == sample_sizes[1:]):
+
+    #Drop na because when using diff, first row will be NanN since there is no previous row for it to
+    # compare itself to. If all samples have the same amount of observations, the sum of the difference should be 0.
+    test = sample_sizes.diff().dropna()
+    if sum(test) != 0:
         return None
 
     #Creating the column listing the observation number needed to create a mutli-index DataFrame
@@ -51,18 +48,18 @@ def reformatSamples(samples):
     #No need to specify which column to unstack bc default puts sample as first column
     reformat_dat = multi_ind_dat.unstack()
 
+    #Flatten that new df even more, so that the sample column is separated from the index
     reformat_dat.reset_index(level=0,inplace=True)
-    print(reformat_dat.columns.tolist())
 
     #Rename columns
     #First create a list of new names, we know that the first one will be samples and the rest will be obs.x
     # use shape[1] + 1 because range starts at 1; shape is used to determine number of columns
-    names_new = ["obs." + str(x) for x in range(1,reformat_dat.shape[1] + 1)]
+    names_new = ["obs." + str(x) for x in range(1,reformat_dat.shape[1])]
     names_new = ["sample"] + names_new
 
-    reformat_dat.columns(names_new)
+    reformat_dat.columns = names_new
 
-    #print(reformat_dat)
-    return None
+    #Make sure row indexing starts at 1 so it matches the expected result
+    reformat_dat.index = range(1, len(reformat_dat) + 1)
 
-reformatSamples("pistonrings.csv")
+    return reformat_dat

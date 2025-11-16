@@ -26,7 +26,7 @@ def analyzeWords(words):
     word_stats["letter_counts"] = dict.fromkeys(alphabet)
 
     for letter in alphabet:
-        matches = re.findall(f'^{letter}', words)
-        word_stats["letter_counts"][letter] = len(matches)
+        count = sum([bool(re.search(f'^{letter}', w)) for w in words])
+        word_stats["letter_counts"][letter] = count
 
     return word_stats
