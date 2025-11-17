@@ -1,2 +1,5 @@
-'bbanalyze', (0, 5406928)
-'bbanalyze.2005', (5416960, 61676)
+'extractCoordinates', (0, 1386)
+'analyzeWords', (1536, 11884)
+'combineSamples', (16384, 5636)
+'combineSamples.default', (22528, 5636)
+'reformatSamples', (28672, 3218)
