@@ -15,7 +15,7 @@ def reformatSamples(samples):
     """
     #Ensure that samples is in the correct format to be then read into a pd Data Frame
     if not isinstance(samples, pd.DataFrame):
-        return math.nan
+        return None
 
     #Read in, and sort values in the dataset based on sample. Then, extract two columns for just sample and diameter
     # so that it is ready to be reformatted
