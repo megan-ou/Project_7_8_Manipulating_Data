@@ -8,7 +8,7 @@ def reformatSamples(samples):
     containing observations per sample. All samples must have the same number of observations.
 
     Args:
-        samples (str): name of file containing samples.
+        samples (Pandas DataFrame): name of file containing samples.
 
     Returns: data frame containing the restructured data
 
